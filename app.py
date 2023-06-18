@@ -5,7 +5,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, LoginForm, MessageForm, EditForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Likes
 
 CURR_USER_KEY = "curr_user"
 
@@ -229,7 +229,8 @@ def profile():
             user.bio=form.bio.data
             db.session.add(user)
             db.session.commit()
-            return redirect("users/5")
+            """putting f'users/"""
+            return redirect("/users/5")
     return render_template('users/edit.html', form=form)
 
 
@@ -312,9 +313,13 @@ def homepage():
     """
 
     if g.user:
+        user = User.query.get(session[CURR_USER_KEY])
+        followlist = user.following
+        followlist.append(user)
         messages = (Message
                     .query
                     .order_by(Message.timestamp.desc())
+                    .filter(Message.user_id.in_(u.id for u in followlist))
                     .limit(100)
                     .all())
 
@@ -322,6 +327,51 @@ def homepage():
 
     else:
         return render_template('home-anon.html')
+    
+@app.route('/users/<int:user_id>/likes')
+def likespage(user_id):
+    """Show likespage:
+
+    - anon users: no messages
+    - logged in: 100 most recent messages of followed_users
+    """
+
+    if g.user:
+        user = User.query.get(user_id)
+        messages = (Message
+                    .query
+                    .order_by(Message.timestamp.desc())
+                    .filter(Message.id.in_(m.id for m in user.likes))
+                    .limit(100)
+                    .all())
+
+        return render_template('home.html', messages=messages)
+
+    else:
+        return render_template('home-anon.html')
+    
+@app.route('/users/add_like/<int:msg_id>', methods=['POST'])
+def add_like(msg_id):
+    if g.user:
+        user = User.query.get(session[CURR_USER_KEY])
+        if Message.query.get(msg_id) in user.likes:
+            like = Likes.query.filter(Likes.user_id==user.id,Likes.message_id==msg_id).first()
+            db.session.delete(like)
+            db.session.commit()
+            flash('removed Like')
+        else:
+            new_like = Likes(
+                user_id = user.id,
+                message_id=msg_id
+            )
+            db.session.add(new_like)
+            db.session.commit()
+            flash("added Like")
+    else:
+        flash("failed to like as you are not logged in")
+    return redirect(request.referrer)
+
+
 
 
 ##############################################################################

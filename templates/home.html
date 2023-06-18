@@ -55,10 +55,13 @@
               <button class="
                 btn 
                 btn-sm 
-                {{'btn-primary' if msg.id in likes else 'btn-secondary'}}"
+                {{'btn-primary' if msg in g.user.likes else 'btn-secondary'}}"
               >
                 <i class="fa fa-thumbs-up"></i> 
               </button>
+              {%if msg in g.user.likes%}
+              <button class="btn btn-sm"><img src="/static/favicon.ico"></button>
+              {%endif%}
             </form>
           </li>
         {% endfor %}
