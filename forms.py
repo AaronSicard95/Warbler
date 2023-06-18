@@ -31,4 +31,4 @@ class EditForm(FlaskForm):
     image_url = StringField('(Optional) Image URL')
     header_image_url = StringField('(optional) Header Image')
     bio = StringField('Bio')
-    password = StringField('Confirm Password')
+    password = PasswordField('Confirm Password')
